@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>梁大夫 · 项目展示</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-hover: #1c2230;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-dim: #1f6feb;
+    --green: #3fb950;
+    --orange: #d29922;
+    --red: #f85149;
+    --purple: #bc8cff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
+    line-height: 1.6;
+  }
+  a { color: var(--accent); text-decoration: none; transition: color .2s; }
+  a:hover { color: var(--purple); }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    padding: 80px 24px 60px;
+    background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+    border-bottom: 1px solid var(--border);
+  }
+  .hero h1 {
+    font-size: 2.8rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--accent) 0%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 1.15rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero-links {
+    margin-top: 24px;
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+  }
+  .hero-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: .9rem;
+    transition: all .2s;
+  }
+  .hero-links a:hover {
+    border-color: var(--accent);
+    background: rgba(88,166,255,.1);
+  }
+
+  /* Stats */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 48px;
+    padding: 32px 24px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .stat-item { text-align: center; }
+  .stat-item .num {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-item .label {
+    font-size: .85rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+
+  /* Container */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 48px 24px;
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-title .count {
+    font-size: .9rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 2px 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  /* Filter */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: .85rem;
+    transition: all .2s;
+  }
+  .filter-btn:hover { border-color: var(--accent); color: var(--text); }
+  .filter-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+    color: #fff;
+  }
+
+  /* Project grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+
+  /* Project card */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: all .2s;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .card-header h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+  }
+  .card-header h3 a { color: var(--text); }
+  .card-header h3 a:hover { color: var(--accent); }
+  .badges {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .badge {
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .badge-public { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+  .badge-private { background: rgba(248,81,73,.1); color: var(--red); border: 1px solid rgba(248,81,73,.25); }
+  .badge-cat { background: rgba(188,140,255,.12); color: var(--purple); border: 1px solid rgba(188,140,255,.25); }
+  .badge-local { background: rgba(210,153,34,.12); color: var(--orange); border: 1px solid rgba(210,153,34,.25); }
+
+  .card-desc {
+    color: var(--text-muted);
+    font-size: .88rem;
+    margin-bottom: 14px;
+    flex-grow: 1;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: .78rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: auto;
+  }
+  .card-meta {
+    display: flex;
+    gap: 14px;
+  }
+  .card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+  .card-local {
+    font-size: .75rem;
+    color: var(--orange);
+    margin-top: 6px;
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+  }
+
+  /* Mapping table */
+  .mapping-section { margin-top: 56px; }
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .85rem;
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: .8rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background: var(--bg-card); }
+  td code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    font-size: .82rem;
+    color: var(--orange);
+  }
+  .status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+  }
+  .dot-pub { background: var(--green); }
+  .dot-pri { background: var(--red); }
+  .dot-na { background: var(--text-muted); }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 40px 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: .85rem;
+  }
+  footer a { color: var(--text-muted); }
+  footer a:hover { color: var(--accent); }
+
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 2rem; }
+    .stats { gap: 24px; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>梁大夫 Dr.Liang</h1>
+  <p>中国科学技术大学 · 量子计算 · 电子学 · 全栈开发<br>探索量子与经典的边界，用代码连接教学与研究</p>
+  <div class="hero-links">
+    <a href="https://gitee.com/ftliang" target="_blank">Gitee 主页</a>
+    <a href="https://liang.icu" target="_blank">梁姓寻根</a>
+    <a href="https://moyin.write2.me" target="_blank">墨隐 MoYin</a>
+    <a href="https://quantum.kim" target="_blank">Quantum.Kim</a>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat-item"><div class="num" id="stat-pub">0</div><div class="label">公开仓库</div></div>
+  <div class="stat-item"><div class="num" id="stat-pri">0</div><div class="label">私有仓库</div></div>
+  <div class="stat-item"><div class="num" id="stat-local">0</div><div class="label">本地项目</div></div>
+  <div class="stat-item"><div class="num" id="stat-total">0</div><div class="label">Gitee 总计</div></div>
+</div>
+
+<div class="container">
+  <div class="section-title">
+    项目展示 <span class="count" id="proj-count">0</span>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active" data-filter="all">全部</button>
+    <button class="filter-btn" data-filter="web">Web 应用</button>
+    <button class="filter-btn" data-filter="edu">教材 / 教学</button>
+    <button class="filter-btn" data-filter="skill">AI 技能</button>
+    <button class="filter-btn" data-filter="research">研究 / 学术</button>
+    <button class="filter-btn" data-filter="tool">工具 / 其他</button>
+  </div>
+
+  <div class="grid" id="project-grid"></div>
+
+  <div class="mapping-section">
+    <div class="section-title">
+      本地目录 ↔ Gitee 仓库对照 <span class="count" id="map-count">0</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>本地目录</th>
+            <th>Gitee 仓库</th>
+            <th>可见性</th>
+            <th>描述</th>
+            <th>最近更新</th>
+          </tr>
+        </thead>
+        <tbody id="mapping-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 梁大夫 Dr.Liang · Powered by <a href="https://gitee.com/ftliang" target="_blank">Gitee</a> · AGPL-3.0</p>
+  <p style="margin-top:8px;">本页面由 <code>ftliang.gitee.io</code> 提供 · 数据同步于 2026-07-14</p>
+</footer>
+
+<script>
+const projects = [
+  // === 公开仓库 ===
+  {
+    name: "MDEditor",
+    desc: "轻量级跨平台 Markdown 编辑器，基于 Tauri 2 + Vue 3 + CodeMirror 6 构建。支持实时预览、差异对比、多视图模式。",
+    url: "https://gitee.com/ftliang/MDEditor",
+    cat: "web", catLabel: "Web 应用",
+    isPublic: true,
+    local: "E:\\Coder\\MDEditor",
+    updated: "2026-07-09",
+    tech: "Tauri 2 / Vue 3 / CodeMirror 6"
+  },
+  {
+    name: "moyin-android",
+    desc: "墨隐 — 沉浸式小说阅读 Android 客户端。支持 TTS 语音朗读、Sherpa ONNX 离线语音、Edge 在线语音、Markdown 渲染、书架管理。",
+    url: "https://gitee.com/ftliang/moyin-android",
+    cat: "web", catLabel: "Web 应用",
+    isPublic: true,
+    local: "E:\\Coder\\moyin-android",
+    updated: "2026-06-30",
+    tech: "Kotlin / Compose / Hilt / Room"
+  },
+  {
+    name: "9X9",
+    desc: "乘法口诀表互动练习程序 — 九乘九。适合小学生互动练习乘法表。",
+    url: "https://gitee.com/ftliang/9X9",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: true,
+    local: "E:\\Coder\\9X9",
+    updated: "2026-06-15",
+    tech: "HTML / JavaScript"
+  },
+  {
+    name: "9x9-multiply-practice",
+    desc: "乘法口诀表互动练习 Web 版，增强版练习体验。",
+    url: "https://gitee.com/ftliang/9x9-multiply-practice",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: true,
+    local: "E:\\Coder\\9x9-web",
+    updated: "2026-07-14",
+    tech: "HTML / JavaScript"
+  },
+  {
+    name: "analog-electronics-textbook",
+    desc: "《电子技术基础》课程扩展版教材，覆盖从电路基本定律到模拟集成电路设计的完整知识体系。全书 16 章正文 + 12 个附录，约 13,000 行正文，配套 110+ 幅 SVG 示意图。",
+    url: "https://gitee.com/ftliang/analog-electronics-textbook",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: true,
+    local: "E:\\Coder\\analog-circuit-textbook",
+    updated: "2026-06-19",
+    tech: "Markdown / SVG"
+  },
+  {
+    name: "electronic-instruments-textbook",
+    desc: "电子学测试测量仪器使用说明书 / 教材，涵盖示波器、信号源、万用表等常用仪器的原理与操作指南。",
+    url: "https://gitee.com/ftliang/electronic-instruments-textbook",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: true,
+    local: "E:\\Coder\\Book",
+    updated: "2026-07-10",
+    tech: "Markdown"
+  },
+  {
+    name: "bloch-sphere",
+    desc: "Bloch 球 3D 可视化组件 — 用于量子态的可交互展示。自包含的 React/Three.js 组件，可直接嵌入教学页面。",
+    url: "https://gitee.com/ftliang/bloch-sphere",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: true,
+    local: "E:\\Coder\\BlochSphere",
+    updated: "2026-05-11",
+    tech: "React / Three.js"
+  },
+  {
+    name: "novel-writer",
+    desc: "WPS 灵犀 AgentSkill — 中文小说自动写作。支持分级大纲生成、逐章写作、跨会话续写、审计回溯全流程。",
+    url: "https://gitee.com/ftliang/novel-writer",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: true,
+    local: null,
+    updated: "2026-05-26",
+    tech: "AgentSkill / Markdown"
+  },
+  {
+    name: "moyin-novel-submitter",
+    desc: "墨隐 MoYin 小说发布技能 — AI Agent 批量发布小说 / 章节到墨隐平台。支持创建、发布、编辑、状态管理。",
+    url: "https://gitee.com/ftliang/moyin-novel-submitter",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: true,
+    local: null,
+    updated: "2026-05-23",
+    tech: "AgentSkill / API"
+  },
+  {
+    name: "patent-disclosure-review",
+    desc: "AI 辅助专利技术交底书审核技能。逐段落检查内容完整性，评估专利类型匹配性，给出权利要求条目建议。",
+    url: "https://gitee.com/ftliang/patent-disclosure-review",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: true,
+    local: null,
+    updated: "2026-05-08",
+    tech: "AgentSkill"
+  },
+  {
+    name: "thesis-review",
+    desc: "硕士论文评审技能。由论文评审导师将审稿经验提炼而成，帮助学生提交前完成结构化自我检查，覆盖选题背景、创新点、技术严谨性等维度。",
+    url: "https://gitee.com/ftliang/thesis-review",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: true,
+    local: null,
+    updated: "2026-05-07",
+    tech: "AgentSkill"
+  },
+  {
+    name: "sci-review",
+    desc: "科技论文审稿技能 — 面向电子学 / 集成电路 / 芯片设计领域。按论文类型加载专业评审清单，输出结构化审稿意见与英文审稿信。",
+    url: "https://gitee.com/ftliang/sci-review",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: true,
+    local: null,
+    updated: "2026-05-07",
+    tech: "AgentSkill"
+  },
+
+  // === 私有仓库（有本地副本） ===
+  {
+    name: "MoYin (墨隐)",
+    desc: "墨隐 MoYin — 匿名创作 · 读者共决 · 开放协作。Nuxt 3 SSR + FastAPI + PostgreSQL + Redis，线上运行于 moyin.write2.me。",
+    url: "https://gitee.com/ftliang/MoYin",
+    cat: "web", catLabel: "Web 应用",
+    isPublic: false,
+    local: "E:\\Coder\\moyin-web",
+    updated: "2026-06-26",
+    tech: "Nuxt 3 / FastAPI / PostgreSQL / Redis"
+  },
+  {
+    name: "JokeQC (Quantum.Kim)",
+    desc: "Quantum.Kim — QCaaS 量子计算云服务平台。前后端分离架构，Docker 容器部署，域名 quantum.kim。",
+    url: "https://gitee.com/ftliang/JokeQC",
+    cat: "web", catLabel: "Web 应用",
+    isPublic: false,
+    local: "E:\\Coder\\JokeQC",
+    updated: "2026-06-17",
+    tech: "React / Flask / Docker"
+  },
+  {
+    name: "Liang (个人学术网站)",
+    desc: "个人学术网站 — USTC 中国科学技术大学。React + Vite + Tailwind 学术简洁风静态站，5 个页面。",
+    url: "https://gitee.com/ftliang/Liang",
+    cat: "research", catLabel: "研究 / 学术",
+    isPublic: false,
+    local: "E:\\Coder\\Liang",
+    updated: "2026-06-01",
+    tech: "React / Vite / Tailwind"
+  },
+  {
+    name: "liang.icu (梁姓寻根)",
+    desc: "梁姓寻根溯源网站 — React + Vite + Tailwind 水墨风静态站。探索梁姓的历史渊源与文化传承。",
+    url: "https://gitee.com/ftliang/liang.icu",
+    cat: "research", catLabel: "研究 / 学术",
+    isPublic: false,
+    local: "E:\\Coder\\SureName",
+    updated: "2026-06-01",
+    tech: "React / Vite / Tailwind"
+  },
+  {
+    name: "quantum-computing-textbook",
+    desc: "量子计算前沿 — 从物理实现到容错计算。基于中科大 PHYS4010.01 课程，AGPL-3.0 许可。",
+    url: "https://gitee.com/ftliang/quantum-computing-textbook",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: false,
+    local: "E:\\Coder\\QuantumComputing",
+    updated: "2026-06-01",
+    tech: "Markdown / LaTeX"
+  },
+  {
+    name: "QC_Book",
+    desc: "量子计算：从经典到量子 — 系统学习教材，7 卷 36 章，覆盖量子计算完整知识体系。",
+    url: "https://gitee.com/ftliang/QC_Book",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: false,
+    local: "E:\\Coder\\QC_Book",
+    updated: "2026-05-13",
+    tech: "Markdown / LaTeX"
+  },
+  {
+    name: "analog-circuit-textbook",
+    desc: "电路分析与模拟电路合并教材 — 16 章 + 6 附录，梁大夫编著。",
+    url: "https://gitee.com/ftliang/analog-circuit-textbook",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: false,
+    local: "E:\\Coder\\analog-circuit-textbook",
+    updated: "2026-05-30",
+    tech: "Markdown"
+  },
+  {
+    name: "zotero-share",
+    desc: "课题组共享文献学习 / 整理 / 分享平台 — 多用户 Zotero 上传合并 + WebDAV。线上 zotero.quanta.host。",
+    url: "https://gitee.com/ftliang/zotero-share",
+    cat: "research", catLabel: "研究 / 学术",
+    isPublic: false,
+    local: "E:\\Coder\\zotero-share",
+    updated: "2026-07-07",
+    tech: "React / FastAPI / PostgreSQL / Redis"
+  },
+  {
+    name: "melodytrace-desktop (听音出谱)",
+    desc: "实时听音出谱桌面程序 — Python/PySide6/Demucs/Basic Pitch/CREPE 技术栈。实时多乐器听音出谱 + 频谱可视化，含中国古典乐器完整支持，输出五线谱 + 简谱双谱对照。",
+    url: "https://gitee.com/ftliang/melodytrace-desktop",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: false,
+    local: "E:\\Coder\\listen",
+    updated: "2026-05-20",
+    tech: "Python / PySide6 / Demucs / Basic Pitch"
+  },
+  {
+    name: "timemail (写给未来的信)",
+    desc: "TimeMail — 未来邮件延时发送服务。写给未来的自己或他人，在指定时间收到邮件。",
+    url: "https://gitee.com/ftliang/timemail",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: false,
+    local: "E:\\Coder\\WriterToMe",
+    updated: "2026-06-17",
+    tech: "Python / Web"
+  },
+  {
+    name: "zitie-web (练字工坊)",
+    desc: "练字工坊 — 字帖生成工具。在线生成各类字帖用于书法练习。",
+    url: "https://gitee.com/ftliang/zitie-web",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: false,
+    local: "E:\\Coder\\Zitie-Web",
+    updated: "2026-07-05",
+    tech: "Web"
+  },
+  {
+    name: "class-advisor-ai (班主任AI)",
+    desc: "班主任 AI 智能体系统 — Dify + LangBot + NapCatQQ 部署于学校内网服务器，为班级管理提供智能辅助。",
+    url: "https://gitee.com/ftliang/class-advisor-ai",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: false,
+    local: "E:\\Coder\\class-advisor-ai",
+    updated: "2026-07-13",
+    tech: "Dify / LangBot / NapCatQQ"
+  },
+  {
+    name: "BlochSphere (布洛赫球实验室)",
+    desc: "布洛赫球实验室 — 量子门交互可视化教学工具。完整版应用，包含量子门操作、态矢量演化等交互功能。",
+    url: "https://gitee.com/ftliang/BlochSphere",
+    cat: "edu", catLabel: "教材 / 教学",
+    isPublic: false,
+    local: "E:\\Coder\\BlochSphere",
+    updated: "2026-05-17",
+    tech: "React / Three.js"
+  },
+
+  // === 仅 Gitee 上的私有仓库（无本地 E:\Coder 副本） ===
+  {
+    name: "nsfc-review",
+    desc: "NSFC 面上项目申请书评审技能 — 评估选题意义、新颖性、创新性和可行性。",
+    url: "https://gitee.com/ftliang/nsfc-review",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-05-14",
+    tech: "AgentSkill"
+  },
+  {
+    name: "gb-test-sop",
+    desc: "基于国家标准编制检测实验室作业指导书 (SOP)，严格遵循 CNAS-CL01/CMA/RB/T 214。",
+    url: "https://gitee.com/ftliang/gb-test-sop",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-05-26",
+    tech: "AgentSkill"
+  },
+  {
+    name: "gb-standard-review",
+    desc: "国家标准送审稿评审技能 — 六维评审框架。",
+    url: "https://gitee.com/ftliang/gb-standard-review",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-05-18",
+    tech: "AgentSkill"
+  },
+  {
+    name: "gb-translation-review",
+    desc: "国家标准英文译本翻译质量评审工具 — 基于 GB/T 20000.10-2026 的自动化评审技能。",
+    url: "https://gitee.com/ftliang/gb-translation-review",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-06-04",
+    tech: "AgentSkill"
+  },
+  {
+    name: "deep-research",
+    desc: "深度调研与研究写作技能 — 基于双图架构 (OG + KG) 的迭代式深度研究。",
+    url: "https://gitee.com/ftliang/deep-research",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-06-01",
+    tech: "AgentSkill"
+  },
+  {
+    name: "server-security-scan",
+    desc: "Linux 服务器安全扫描 Agent Skill — 系统更新、病毒扫描、端口审计、挖矿木马检测。",
+    url: "https://gitee.com/ftliang/server-security-scan",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-07-11",
+    tech: "AgentSkill"
+  },
+  {
+    name: "md-to-latex-pipeline",
+    desc: "Markdown 转 LaTeX 转换管线 — 将 Markdown 工程文件转换为 XeLaTeX 可编译的 tex 文件。",
+    url: "https://gitee.com/ftliang/md-to-latex-pipeline",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: false,
+    local: null,
+    updated: "2026-07-12",
+    tech: "Python / LaTeX"
+  },
+  {
+    name: "quantum-grading",
+    desc: "量子计算前沿课程大作业评分技能 — 自动解析文件名，按统一评分规则打分。",
+    url: "https://gitee.com/ftliang/quantum-grading",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-06-26",
+    tech: "AgentSkill"
+  },
+  {
+    name: "novel-creation-team",
+    desc: "小说灵感创作天团 — 专业小说创作团队，具备架构、写作、审计能力。",
+    url: "https://gitee.com/ftliang/novel-creation-team",
+    cat: "skill", catLabel: "AI 技能",
+    isPublic: false,
+    local: null,
+    updated: "2026-07-14",
+    tech: "AgentSkill"
+  },
+
+  // === USTC Git 仓库 ===
+  {
+    name: "timeline_app",
+    desc: "时间线 APP — USTC Git 仓库。",
+    url: "https://git.ustc.edu.cn/Liang/timeline_app",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: true,
+    local: "E:\\Coder\\TimeLine_APP",
+    updated: "—",
+    tech: "—"
+  },
+  {
+    name: "timeline_web",
+    desc: "时间线 Web — USTC Git 仓库。",
+    url: "https://git.ustc.edu.cn/Liang/timeline_web",
+    cat: "tool", catLabel: "工具 / 其他",
+    isPublic: true,
+    local: "E:\\Coder\\TimeLine_WEB",
+    updated: "—",
+    tech: "—"
+  },
+];
+
+const localOnlyDirs = [
+  { dir: "E:\\Coder\\SlackPlan", note: "无 Git 远程仓库" },
+  { dir: "E:\\Coder\\TLine-master", note: "无 Git 远程仓库" },
+  { dir: "E:\\Coder\\TimeLine", note: "无 Git 远程仓库" },
+  { dir: "E:\\Coder\\小说", note: "无 Git 远程仓库" },
+];
+
+// === Rendering ===
+const grid = document.getElementById('project-grid');
+const mappingBody = document.getElementById('mapping-body');
+
+function formatDate(d) {
+  if (d === '—') return '—';
+  return d;
+}
+
+function renderProjects(filter) {
+  grid.innerHTML = '';
+  const filtered = filter === 'all' ? projects : projects.filter(p => p.cat === filter);
+  filtered.forEach(p => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    const badges = `
+      <span class="badge ${p.isPublic ? 'badge-public' : 'badge-private'}">${p.isPublic ? '公开' : '私有'}</span>
+      <span class="badge badge-cat">${p.catLabel}</span>
+    `;
+    const localInfo = p.local
+      ? `<div class="card-local">📁 ${p.local}</div>`
+      : '';
+    card.innerHTML = `
+      <div class="card-header">
+        <h3><a href="${p.url}" target="_blank">${p.name}</a></h3>
+        <div class="badges">${badges}</div>
+      </div>
+      <div class="card-desc">${p.desc}</div>
+      ${localInfo}
+      <div class="card-footer">
+        <div class="card-meta">
+          <span>🔧 ${p.tech}</span>
+        </div>
+        <span>📅 ${formatDate(p.updated)}</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+  document.getElementById('proj-count').textContent = filtered.length;
+}
+
+function renderMapping() {
+  mappingBody.innerHTML = '';
+  // Projects with local mapping
+  projects.filter(p => p.local).forEach(p => {
+    const tr = document.createElement('tr');
+    const dotClass = p.isPublic ? 'dot-pub' : 'dot-pri';
+    const visLabel = p.isPublic ? '公开' : '私有';
+    tr.innerHTML = `
+      <td><code>${p.local}</code></td>
+      <td><a href="${p.url}" target="_blank">${p.name}</a></td>
+      <td><span class="status-dot ${dotClass}"></span>${visLabel}</td>
+      <td>${p.desc.substring(0, 60)}${p.desc.length > 60 ? '...' : ''}</td>
+      <td>${formatDate(p.updated)}</td>
+    `;
+    mappingBody.appendChild(tr);
+  });
+  // Local-only dirs (no remote)
+  localOnlyDirs.forEach(d => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><code>${d.dir}</code></td>
+      <td style="color:var(--text-muted)">— 无远程 —</td>
+      <td><span class="status-dot dot-na"></span>仅本地</td>
+      <td style="color:var(--text-muted)">${d.note}</td>
+      <td>—</td>
+    `;
+    mappingBody.appendChild(tr);
+  });
+  document.getElementById('map-count').textContent = projects.filter(p => p.local).length + localOnlyDirs.length;
+}
+
+function renderStats() {
+  const pub = projects.filter(p => p.isPublic).length;
+  const pri = projects.filter(p => !p.isPublic).length;
+  const local = projects.filter(p => p.local).length + localOnlyDirs.length;
+  document.getElementById('stat-pub').textContent = pub;
+  document.getElementById('stat-pri').textContent = pri;
+  document.getElementById('stat-local').textContent = local;
+  document.getElementById('stat-total').textContent = pub + pri;
+}
+
+// Filters
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderProjects(btn.dataset.filter);
+  });
+});
+
+renderProjects('all');
+renderMapping();
+renderStats();
+</script>
+
+</body>
+</html>
