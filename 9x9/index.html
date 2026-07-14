@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>乘法口诀表计算练习</title>
+<!--
+  ============================================================================
+  乘法口诀表计算练习 — 单文件静态网页（v4 最终版）
+  ----------------------------------------------------------------------------
+  整体结构（共享知识 / 关键约定）：
+  1. 纯原生实现：单文件 index.html，内联 <style> 与 <script>，无外部依赖、
+     无 CDN、无构建步骤，双击即可在浏览器打开使用。
+  2. 题目模型：一道题 current = { a, b, c, maskPos, answer }
+       - a, b ∈ [2..9]；c = a * b ∈ [4..81]
+       - maskPos ∈ {'a','b','tens','units'}，为被遮罩的"单个数字位"
+       - answer：该位的"正确数字"，用于判定对错
+  3. 洗牌袋（shuffle-bag）出题：预先生成全部 64 个有序组合 (a∈2..9, b∈2..9)，
+     Fisher–Yates 洗牌后依次 pop() 抽取；袋子空了立即重建（一轮 64 题后重新开始）。
+  4. 渲染约定：buildSegments() 把算式拆成片段数组，被遮罩片段渲染成可点击的
+     "?" 按钮，其余片段渲染为普通文本。
+  5. 计时约定：每题独立计时。generateQuestion() 重置 seconds = 0 并启动每秒 +1
+     的定时器；作答后冻结（stopTimer）。大号半透明数字作为"水印"置于算式背景层。
+  6. 统计约定：四个全局统计（正确总数 / 错误总数 / 最大连续正确 / 最大连续错误），
+     均为纯内存变量，刷新页面即重置。
+  7. 数字选择器（悬浮键盘，由"数字键盘遮挡题目"勾选框控制）：
+       - 默认 / 未勾选：点击"?"后，悬浮键盘在"?"正下方弹出，不遮挡算式。
+         键盘有箭头指向"?"，位置由 JS 动态计算。
+       - 勾选（遮挡模式）：键盘面板覆盖整个算式区，不加暗色蒙版，
+         通过键盘面板不透明白色 + 底部渐变效果遮挡算式。
+     选择器选项集合随遮罩位变化：乘数位(a/b)→仅 1~9（无 0）；结果位→0~9。
+     "数字键盘乱序"勾选框开启时，选项按随机顺序排列。
+  8. 作答反馈：选定数字后，"?" 按钮被替换为所选具体数字，并以颜色区分
+     —— 正确绿色 / 错误红色，保留到下一题重建前；同时保留一句话文字反馈。
+  9. 布局：两段纵向 Grid（顶 auto / 中 1fr）。统计面板与"统计"按钮、两个勾选框
+     统一置于顶部单行条(.topbar)；题目区(.stage)居中锁在屏幕中部，算式与水印
+     垂直方向均居中对齐。悬浮键盘为 position:fixed 元素，不影响布局流。
+  10. 函数划分：randomInt / buildSegments、drawPair / refillBag（洗牌袋）、
+      render*、startTimer / stopTimer、generateQuestion、judge、
+      openPicker / closePicker / buildPickerInto / positionKeypad、
+      openModal / closeModal。
+  ============================================================================
+-->
+<style>
+  :root {
+    --bg1: #eef2ff;
+    --bg2: #e0f2fe;
+    --card: #ffffff;
+    --primary: #4f46e5;
+    --primary-soft: #eef2ff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --ok: #16a34a;
+    --err: #dc2626;
+
+    /* 布局 / 尺寸令牌 */
+    --app-pad: clamp(12px, 2.5vw, 24px);
+    --app-gap: clamp(10px, 1.8vw, 18px);
+    --radius-card: 20px;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Microsoft YaHei", sans-serif;
+    color: var(--text);
+    height: 100dvh;
+    background: linear-gradient(135deg, var(--bg1), var(--bg2));
+    overflow: hidden;
+  }
+
+  /* ---------- 两段纵向 Grid：顶(auto) / 中(1fr) ---------- */
+  .app {
+    position: relative;
+    width: 100%;
+    height: 100dvh;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: var(--app-gap);
+    padding: var(--app-pad);
+  }
+
+  /* ---------- 顶部单行（统计 + 控制）---------- */
+  .topbar {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: clamp(8px, 1.5vw, 16px);
+    font-size: clamp(13px, 2.2vw, 16px);
+    background: var(--card);
+    border-radius: 14px;
+    padding: clamp(8px, 1.5vw, 14px) clamp(10px, 2vw, 18px);
+    box-shadow: 0 8px 24px rgba(31, 41, 55, 0.10);
+  }
+  .topbar .statbar {
+    display: grid;
+    grid-template-columns: repeat(4, auto);
+    gap: 6px 14px;
+    margin-right: auto;
+  }
+  .topbar .stat {
+    display: flex;
+    flex-direction: row;
+    align-items: baseline;
+    gap: 4px;
+  }
+  .topbar .stat-label {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .topbar .stat b {
+    font-size: clamp(15px, 3vw, 20px);
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .topbar .controls {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 1vw, 10px);
+    flex-wrap: wrap;
+  }
+  .topbar .situation-btn {
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    font-weight: 600;
+    font-size: clamp(13px, 2.2vw, 16px);
+    padding: 6px 12px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  .topbar .situation-btn:active { transform: scale(0.98); }
+  .topbar .chk {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: clamp(12px, 2vw, 14px);
+    color: var(--text);
+    background: var(--card);
+    padding: 5px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(31, 41, 55, 0.08);
+    user-select: none;
+  }
+  .topbar .chk input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+    cursor: pointer;
+  }
+
+  /* ---------- 练习区（中部舞台，算式与水印均垂直居中对齐）---------- */
+  .stage {
+    position: relative;
+    min-height: 0;
+    background: var(--card);
+    border-radius: var(--radius-card);
+    padding: clamp(18px, 3vw, 40px);
+    box-shadow: 0 18px 40px rgba(31, 41, 55, 0.14);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;     /* 算式居中，与水印垂直对齐 */
+    overflow: hidden;
+  }
+
+  .question-label {
+    position: absolute;
+    top: clamp(14px, 2.5vw, 28px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(13px, 2.4vw, 17px);
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-soft);
+    padding: 4px 16px;
+    border-radius: 20px;
+    z-index: 2;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  /* 水印计时：大号、半透明、居中、无衬线粗体、置于算式背景层；垂直固定不跳动 */
+  .watermark {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: clamp(140px, 30vmin, 360px);
+    font-weight: 700;
+    color: rgba(79, 70, 229, 0.08);
+    letter-spacing: -4px;
+    line-height: 1;
+    font-variant-numeric: lining-nums tabular-nums;
+    font-feature-settings: "lnum" "tnum";
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: none;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .equation {
+    position: relative;
+    z-index: 2;
+    font-size: clamp(64px, 17vw, 168px);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(4px, 1vw, 10px);
+    line-height: 1.1;
+  }
+  .equation span { white-space: pre; }
+
+  .mask-btn {
+    min-width: clamp(80px, 20vw, 124px);
+    min-height: clamp(80px, 20vw, 124px);
+    border: 3px dashed var(--primary);
+    background: var(--primary-soft);
+    color: var(--primary);
+    font-size: clamp(52px, 15vw, 120px);
+    font-weight: 700;
+    border-radius: 16px;
+    cursor: pointer;
+    padding: 0 clamp(10px, 2vw, 16px);
+    transition: transform 0.08s ease, background 0.15s ease;
+  }
+  .mask-btn:hover { background: #e0e7ff; }
+  .mask-btn:active { transform: scale(0.95); }
+
+  /* 作答后把 "?" 替换为所选数字，并用颜色提示对错 */
+  .reveal-ok {
+    color: var(--ok) !important;
+    border-color: var(--ok) !important;
+    background: #dcfce7 !important;
+  }
+  .reveal-err {
+    color: var(--err) !important;
+    border-color: var(--err) !important;
+    background: #fee2e2 !important;
+  }
+
+  .feedback {
+    position: absolute;
+    bottom: clamp(14px, 2.5vw, 28px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+    min-height: 28px;
+    font-size: clamp(18px, 3.5vw, 22px);
+    font-weight: 700;
+    height: 28px;
+    white-space: nowrap;
+    padding: 4px 18px;
+    border-radius: 14px;
+    transition: opacity 0.2s ease;
+  }
+  .feedback.ok { color: var(--ok); background: rgba(22, 163, 74, 0.08); }
+  .feedback.err { color: var(--err); background: rgba(220, 38, 38, 0.08); }
+
+  /* 短屏（横屏手机）：反馈固定在顶部，始终可见 */
+  @media (max-height: 500px) {
+    .feedback {
+      position: fixed;
+      top: clamp(56px, 11vh, 76px);
+      bottom: auto;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 55;
+      font-size: clamp(15px, 3vw, 18px);
+      padding: 3px 14px;
+      min-height: 24px;
+      height: auto;
+    }
+  }
+
+  /* ---------- 悬浮数字键盘 ---------- */
+  .floating-keypad {
+    position: fixed;
+    display: none;
+    background: #fff;
+    border-radius: 18px;
+    padding: clamp(14px, 2vw, 20px);
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+    z-index: 50;
+    width: min(90vw, 480px);
+    /* left/top 由 JS 动态设置 */
+  }
+  .floating-keypad.show { display: block; }
+
+  /* 箭头指向"?"（仅非遮挡模式） */
+  .floating-keypad .keypad-arrow {
+    display: none;
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-left: 12px solid transparent;
+    border-right: 12px solid transparent;
+    border-bottom: 12px solid #fff;
+    filter: drop-shadow(0 -2px 3px rgba(0, 0, 0, 0.08));
+    z-index: 51;
+  }
+  /* 箭头朝下（键盘在"?"上方时） */
+  .floating-keypad.arrow-below .keypad-arrow {
+    border-top: 12px solid #fff;
+    border-bottom: none;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.08));
+  }
+
+  /* 非遮挡模式显示箭头 */
+  .floating-keypad:not(.occlude) .keypad-arrow {
+    display: block;
+  }
+
+  /* 遮挡模式：适中弹窗居中覆盖算式区域，不显示箭头 */
+  .floating-keypad.occlude {
+    border-radius: 18px;
+    width: min(96vw, 920px);
+    max-width: none;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.20);
+  }
+  .floating-keypad.occlude .keypad-arrow { display: none !important; }
+
+  .keypad-title {
+    text-align: center;
+    font-size: clamp(14px, 2.8vw, 17px);
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: clamp(10px, 2vw, 16px);
+    position: relative;
+    z-index: 1;
+    letter-spacing: 0.3px;
+  }
+
+  .keypad-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: clamp(8px, 1.5vw, 14px);
+    position: relative;
+    z-index: 1;
+  }
+
+  .digit-btn {
+    border: none;
+    background: var(--primary-soft);
+    color: var(--primary);
+    width: 100%;
+    min-width: 0;
+    aspect-ratio: 1 / 1;
+    min-height: clamp(72px, 14vw, 96px);
+    font-size: clamp(34px, 8vw, 48px);
+    font-weight: 700;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s ease, transform 0.08s ease;
+  }
+  .digit-btn:active { background: #c7d2fe; transform: scale(0.96); }
+
+  .keypad-cancel {
+    width: 100%;
+    margin-top: clamp(10px, 2vw, 14px);
+    border: none;
+    background: #f1f5f9;
+    color: var(--muted);
+    font-size: clamp(14px, 2.8vw, 16px);
+    font-weight: 600;
+    padding: 12px 0;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    z-index: 1;
+    transition: background 0.12s ease, transform 0.08s ease;
+  }
+  .keypad-cancel:hover { background: #e2e8f0; }
+  .keypad-cancel:active { transform: scale(0.97); }
+
+  /* ---------- 统计弹层 ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 60;
+    padding: clamp(12px, 3vw, 24px);
+  }
+  .overlay.show { display: flex; }
+
+  .modal-panel {
+    background: #fff;
+    border-radius: 18px;
+    padding: clamp(14px, 2.5vw, 22px);
+    width: min(92vw, 340px);
+    max-width: none;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+
+  .modal-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .modal-head h2 { margin: 0; font-size: 20px; }
+  .modal-close {
+    border: none;
+    background: #f1f5f9;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--muted);
+  }
+
+  .modal-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .modal-row b { color: var(--text); font-size: 18px; }
+
+  .modal-summary {
+    margin: 14px 0 0;
+    text-align: center;
+    font-size: 16px;
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* ---------- 侧边键盘模式（横屏 / 短屏）---------- */
+  .floating-keypad.keypad-side {
+    width: min(42vw, 220px);
+    padding: clamp(10px, 1.5vw, 14px);
+  }
+  .floating-keypad.keypad-side .keypad-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(6px, 1vw, 10px);
+  }
+  .floating-keypad.keypad-side .digit-btn {
+    aspect-ratio: 1 / 1;
+    min-height: clamp(44px, 9vh, 58px);
+    font-size: clamp(22px, 5vw, 32px);
+    border-radius: 10px;
+  }
+  .floating-keypad.keypad-side .keypad-title {
+    font-size: clamp(12px, 2vw, 14px);
+    margin-bottom: clamp(6px, 1vw, 10px);
+  }
+  .floating-keypad.keypad-side .keypad-cancel {
+    font-size: clamp(12px, 2vw, 14px);
+    padding: 8px 0;
+    margin-top: clamp(6px, 1vw, 10px);
+  }
+  /* 侧边箭头：水平指向（重置所有border后按方向设置） */
+  .floating-keypad.keypad-side .keypad-arrow {
+    border-left: 12px solid transparent !important;
+    border-right: 12px solid transparent !important;
+    border-top: 12px solid transparent !important;
+    border-bottom: 12px solid transparent !important;
+  }
+  /* 键盘在右侧时，箭头朝左指（左边框实色） */
+  .floating-keypad.keypad-side.arrow-left .keypad-arrow {
+    border-left: 12px solid #fff !important;
+    filter: drop-shadow(-2px 0 3px rgba(0,0,0,0.08));
+  }
+  /* 键盘在左侧时，箭头朝右指（右边框实色） */
+  .floating-keypad.keypad-side.arrow-right .keypad-arrow {
+    border-right: 12px solid #fff !important;
+    filter: drop-shadow(2px 0 3px rgba(0,0,0,0.08));
+  }
+
+  /* ---------- 顶部统计颜色 ---------- */
+  .topbar .stat b.text-ok { color: var(--ok); }
+  .topbar .stat b.text-err { color: var(--err); }
+
+  /* ---------- 响应式（极窄屏微调）---------- */
+  @media (max-width: 560px) {
+    :root { --app-pad: 8px; --app-gap: 8px; }
+    .topbar { font-size: 13px; }
+    .topbar .controls { gap: 8px; }
+    .topbar .chk { font-size: 13px; padding: 7px 10px; }
+  }
+</style>
+</head>
+<body>
+  <div class="app">
+    <!-- 顶部单行：统计 + 统计按钮 + 难度勾选 -->
+    <header class="topbar">
+      <div class="statbar">
+        <div class="stat"><span class="stat-label">用时</span><b id="statTime">00:00</b></div>
+        <div class="stat"><span class="stat-label">答题</span><b id="statTotal">0</b></div>
+        <div class="stat"><span class="stat-label">正确</span><b id="statCorrect" class="text-ok">0</b></div>
+        <div class="stat"><span class="stat-label">错误</span><b id="statWrong" class="text-err">0</b></div>
+      </div>
+      <div class="controls">
+        <button class="situation-btn" id="situationBtn" type="button">统计</button>
+        <label class="chk"><input type="checkbox" id="shuffleCheck" /> 数字键盘乱序</label>
+        <label class="chk"><input type="checkbox" id="occludeCheck" /> 数字键盘遮挡题目</label>
+      </div>
+    </header>
+
+    <!-- 中部舞台：算式 + 水印，均垂直居中对齐 -->
+    <section class="stage" id="stage">
+      <div class="question-label" id="questionLabel">第 1 题</div>
+      <div class="watermark" id="watermark">0</div>
+      <div class="equation" id="equation"></div>
+      <div class="feedback" id="feedback"></div>
+    </section>
+  </div>
+
+  <!-- 悬浮数字键盘（非遮挡：在"?"下方弹出；遮挡：覆盖算式区） -->
+  <div class="floating-keypad" id="floatingKeypad">
+    <div class="keypad-arrow" id="keypadArrow"></div>
+    <div class="keypad-title" id="keypadTitle">请选择数字（0 ~ 9）</div>
+    <div class="keypad-grid" id="keypadGrid"></div>
+    <button class="keypad-cancel" id="keypadCancel" type="button">取消</button>
+  </div>
+
+  <!-- 统计弹层 -->
+  <div class="overlay" id="modal">
+    <div class="modal-panel">
+      <div class="modal-head">
+        <h2>练习统计</h2>
+        <button class="modal-close" id="modalClose" type="button" aria-label="关闭">×</button>
+      </div>
+      <div id="modalBody"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* =========================================================================
+   * 全局状态
+   * =======================================================================*/
+  /** @type {{a:number,b:number,c:number,maskPos:string,answer:number}|null} */
+  let current = null;
+  let seconds = 0;
+  let timerId = null;
+  let locked = false;        // 作答 / 反馈期间锁定交互
+  let questionCount = 0;
+  let currentMaskBtn = null; // 当前被遮罩 "?" 按钮的 DOM 引用
+  let sessionSeconds = 0;    // 本次会话总用时（秒）
+  let sessionTimerId = null; // 会话计时器 ID
+
+  // 洗牌袋：全部 64 个 (a,b) 组合，Fisher–Yates 洗牌后依次抽取
+  /** @type {Array<[number, number]>} */
+  let bag = [];
+
+  const stats = {
+    correctTotal: 0,
+    wrongTotal: 0,
+    curCorrect: 0,
+    curWrong: 0,
+    maxCorrect: 0,
+    maxWrong: 0,
+  };
+
+  /* =========================================================================
+   * 工具函数
+   * =======================================================================*/
+  /** 返回 [min, max] 闭区间内的随机整数 */
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  /**
+   * 重建洗牌袋：生成全部 64 个 (a,b) 组合（a,b ∈ 2..9），并用 Fisher–Yates 就地洗牌。
+   */
+  function refillBag() {
+    bag = [];
+    for (let a = 2; a <= 9; a++) {
+      for (let b = 2; b <= 9; b++) {
+        bag.push([a, b]);
+      }
+    }
+    for (let i = bag.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = bag[i];
+      bag[i] = bag[j];
+      bag[j] = tmp;
+    }
+  }
+
+  /** 从洗牌袋抽取下一对 (a,b)；袋子空了自动重建后抽取 */
+  function drawPair() {
+    if (bag.length === 0) refillBag();
+    return bag.pop();
+  }
+
+  /**
+   * 生成当前遮罩位对应的可选数字集合：
+   * 乘数位(a/b) → 1~9（无 0）；结果位(tens/units) → 0~9。
+   * 若开启"数字键盘乱序"则对集合做 Fisher–Yates 随机排列。
+   */
+  function buildDigitSet() {
+    let digits;
+    if (current.maskPos === "a" || current.maskPos === "b") {
+      digits = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    } else {
+      digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    }
+    if (document.getElementById("shuffleCheck").checked) {
+      for (let i = digits.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = digits[i];
+        digits[i] = digits[j];
+        digits[j] = tmp;
+      }
+    }
+    return digits;
+  }
+
+  /**
+   * 根据题面与被遮罩位，构建算式片段数组。
+   * 被遮罩片段为 { mask: true, answer }，其余为 { text }。
+   */
+  function buildSegments(a, b, c, maskPos) {
+    const segments = [];
+
+    if (maskPos === "a") {
+      segments.push({ mask: true, answer: a });
+    } else {
+      segments.push({ text: String(a) });
+    }
+    segments.push({ text: " × " });
+
+    if (maskPos === "b") {
+      segments.push({ mask: true, answer: b });
+    } else {
+      segments.push({ text: String(b) });
+    }
+    segments.push({ text: " = " });
+
+    if (c >= 10) {
+      const tens = Math.floor(c / 10);
+      const units = c % 10;
+      if (maskPos === "tens") {
+        segments.push({ mask: true, answer: tens });
+      } else {
+        segments.push({ text: String(tens) });
+      }
+      if (maskPos === "units") {
+        segments.push({ mask: true, answer: units });
+      } else {
+        segments.push({ text: String(units) });
+      }
+    } else {
+      if (maskPos === "units") {
+        segments.push({ mask: true, answer: c });
+      } else {
+        segments.push({ text: String(c) });
+      }
+    }
+    return segments;
+  }
+
+  /* =========================================================================
+   * 会话计时（总用时）
+   * =======================================================================*/
+  function startSessionTimer() {
+    if (sessionTimerId !== null) return;
+    sessionTimerId = setInterval(function () {
+      sessionSeconds += 1;
+      renderSessionTime();
+    }, 1000);
+  }
+
+  function renderSessionTime() {
+    var m = Math.floor(sessionSeconds / 60);
+    var s = sessionSeconds % 60;
+    document.getElementById("statTime").textContent =
+      (m < 10 ? "0" : "") + m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  /* =========================================================================
+   * 渲染
+   * =======================================================================*/
+  function renderEquation() {
+    const eq = document.getElementById("equation");
+    eq.innerHTML = "";
+    const segments = buildSegments(current.a, current.b, current.c, current.maskPos);
+    segments.forEach(function (seg) {
+      if (seg.mask) {
+        const btn = document.createElement("button");
+        btn.className = "mask-btn";
+        btn.type = "button";
+        btn.textContent = "?";
+        btn.setAttribute("aria-label", "点击选择该位数字");
+        btn.addEventListener("click", openPicker);
+        currentMaskBtn = btn;
+        eq.appendChild(btn);
+      } else {
+        const span = document.createElement("span");
+        span.textContent = seg.text;
+        eq.appendChild(span);
+      }
+    });
+  }
+
+  function renderWatermark() {
+    document.getElementById("watermark").textContent = String(seconds);
+  }
+
+  function renderStats() {
+    document.getElementById("statCorrect").textContent = stats.correctTotal;
+    document.getElementById("statWrong").textContent = stats.wrongTotal;
+    document.getElementById("statTotal").textContent = stats.correctTotal + stats.wrongTotal;
+  }
+
+  function renderQuestionLabel() {
+    document.getElementById("questionLabel").textContent = "第 " + questionCount + " 题";
+  }
+
+  function clearFeedback() {
+    const fb = document.getElementById("feedback");
+    fb.textContent = "";
+    fb.className = "feedback";
+  }
+
+  function showFeedback(correct, correctDigit) {
+    const fb = document.getElementById("feedback");
+    if (correct) {
+      fb.textContent = "✓ 正确";
+      fb.className = "feedback ok";
+    } else {
+      fb.textContent = "✗ 正确应为 " + correctDigit;
+      fb.className = "feedback err";
+    }
+  }
+
+  /* =========================================================================
+   * 计时（正计时 / 水印）
+   * =======================================================================*/
+  function startTimer() {
+    stopTimer();
+    seconds = 0;
+    renderWatermark();
+    timerId = setInterval(function () {
+      seconds += 1;
+      renderWatermark();
+    }, 1000);
+  }
+
+  function stopTimer() {
+    if (timerId !== null) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  }
+
+  /* =========================================================================
+   * 题目生成
+   * =======================================================================*/
+  function generateQuestion() {
+    const pair = drawPair();
+    const a = pair[0];
+    const b = pair[1];
+    const c = a * b;
+
+    const positions = ["a", "b", "units"];
+    if (c >= 10) positions.push("tens");
+    const maskPos = positions[randomInt(0, positions.length - 1)];
+
+    let answer;
+    if (maskPos === "a") answer = a;
+    else if (maskPos === "b") answer = b;
+    else if (maskPos === "tens") answer = Math.floor(c / 10);
+    else answer = c % 10;
+
+    current = { a: a, b: b, c: c, maskPos: maskPos, answer: answer };
+    questionCount += 1;
+
+    renderQuestionLabel();
+    renderEquation();
+    clearFeedback();
+    startTimer();
+  }
+
+  /* =========================================================================
+   * 作答判定
+   * =======================================================================*/
+  function judge(selectedDigit) {
+    if (locked || current === null) return;
+    locked = true;
+    stopTimer();
+
+    const correct = selectedDigit === current.answer;
+    if (correct) {
+      stats.correctTotal += 1;
+      stats.curCorrect += 1;
+      stats.curWrong = 0;
+      if (stats.curCorrect > stats.maxCorrect) stats.maxCorrect = stats.curCorrect;
+    } else {
+      stats.wrongTotal += 1;
+      stats.curWrong += 1;
+      stats.curCorrect = 0;
+      if (stats.curWrong > stats.maxWrong) stats.maxWrong = stats.curWrong;
+    }
+    renderStats();
+    showFeedback(correct, current.answer);
+
+    // 把 "?" 替换为所选数字，并以颜色提示对错
+    if (currentMaskBtn !== null) {
+      currentMaskBtn.textContent = String(selectedDigit);
+      currentMaskBtn.classList.add(correct ? "reveal-ok" : "reveal-err");
+    }
+
+    // 0.8 秒后自动进入下一题
+    setTimeout(function () {
+      locked = false;
+      generateQuestion();
+    }, 800);
+  }
+
+  /* =========================================================================
+   * 悬浮数字选择器
+   * 两种模式由 #occludeCheck 控制：
+   *   - 未勾选（默认）：悬浮键盘在"?"正下方弹出，不遮挡算式，有箭头指向"?"
+   *   - 勾选（遮挡）：键盘面板覆盖整个算式区，不加暗色蒙版，
+   *     通过面板不透明白色 + 底部渐变效果遮挡算式
+   * =======================================================================*/
+
+  /** 构建数字按钮并注入到键盘网格 */
+  function buildPickerInto(container) {
+    container.innerHTML = "";
+    const digits = buildDigitSet();
+    digits.forEach(function (d) {
+      const btn = document.createElement("button");
+      btn.className = "digit-btn";
+      btn.type = "button";
+      btn.textContent = String(d);
+      btn.addEventListener("click", function () {
+        closePicker();
+        judge(d);
+      });
+      container.appendChild(btn);
+    });
+  }
+
+  /**
+   * 定位悬浮键盘
+   * - 非遮挡模式：在"?"正下方居中弹出，空间不足时翻转到上方
+   * - 遮挡模式：覆盖整个 stage 区域
+   */
+  function positionKeypad(occlude) {
+    var keypad = document.getElementById("floatingKeypad");
+    var arrow = document.getElementById("keypadArrow");
+
+    // 先重置所有内联样式和模式类
+    keypad.style.left = "";
+    keypad.style.top = "";
+    keypad.style.width = "";
+    keypad.style.height = "";
+    keypad.style.maxWidth = "";
+    keypad.classList.remove("arrow-below", "keypad-side", "arrow-left", "arrow-right");
+
+    if (occlude) {
+      // —— 遮挡模式：适中弹窗居中覆盖算式区域 ——
+      var stageEl = document.getElementById("stage");
+      var stageR = stageEl.getBoundingClientRect();
+      // 强制回流获取键盘实际尺寸
+      void keypad.offsetHeight;
+      var kpR = keypad.getBoundingClientRect();
+      // 水平居中于 stage
+      var ocLeft = stageR.left + (stageR.width - kpR.width) / 2;
+      ocLeft = Math.max(8, Math.min(ocLeft, window.innerWidth - kpR.width - 8));
+      // 垂直居中于 stage（刚好遮住算式区域）
+      var ocTop = stageR.top + (stageR.height - kpR.height) / 2;
+      ocTop = Math.max(8, Math.min(ocTop, window.innerHeight - kpR.height - 8));
+      keypad.style.left = ocLeft + "px";
+      keypad.style.top = ocTop + "px";
+      return;
+    }
+
+    // —— 非遮挡模式 ——
+    if (!currentMaskBtn) return;
+
+    var btnRect = currentMaskBtn.getBoundingClientRect();
+    var gap = 14;
+    var vw = window.innerWidth;
+    var vh = window.innerHeight;
+
+    // 先以默认（下方弹出）模式获取键盘尺寸
+    var keypadRect = keypad.getBoundingClientRect();
+    var kw = keypadRect.width;
+    var kh = keypadRect.height;
+
+    // 检测纵向空间是否足够（下方或上方至少一边能容纳键盘）
+    var spaceBelow = vh - btnRect.bottom - gap;
+    var spaceAbove = btnRect.top - gap;
+    var verticalFit = spaceBelow >= kh + 8 || spaceAbove >= kh + 8;
+    // 纵向空间不足时，启用侧边模式（左右弹出）
+    var useSideMode = !verticalFit;
+
+    if (useSideMode) {
+      // ===== 侧边模式：键盘在"?"左侧或右侧弹出 =====
+      keypad.classList.add("keypad-side");
+      // 强制回流以获取侧边模式下的新尺寸
+      void keypad.offsetHeight;
+      keypadRect = keypad.getBoundingClientRect();
+      kw = keypadRect.width;
+      kh = keypadRect.height;
+
+      var btnCenterX = btnRect.left + btnRect.width / 2;
+      var placeOnRight = btnCenterX < vw / 2;
+      var left, top;
+
+      if (placeOnRight) {
+        // 键盘在"?"右侧
+        left = btnRect.right + gap;
+        if (left + kw > vw - 8) left = Math.max(8, vw - kw - 8);
+        keypad.classList.add("arrow-left"); // 箭头朝左指向"?"
+        // 箭头垂直位置：指向"?"中心
+        var arrowY = btnRect.top + btnRect.height / 2;
+        arrow.style.left = (-12) + "px";
+        arrow.style.top = (arrowY - keypad.offsetTop) + "px";
+        arrow.style.bottom = "";
+        arrow.style.transform = "translateY(-50%)";
+      } else {
+        // 键盘在"?"左侧
+        left = btnRect.left - gap - kw;
+        if (left < 8) left = 8;
+        keypad.classList.add("arrow-right"); // 箭头朝右指向"?"
+        var arrowY2 = btnRect.top + btnRect.height / 2;
+        arrow.style.right = (-12) + "px";
+        arrow.style.left = "";
+        arrow.style.top = (arrowY2 - keypad.offsetTop) + "px";
+        arrow.style.bottom = "";
+        arrow.style.transform = "translateY(-50%)";
+      }
+
+      // 垂直：相对于"?"居中
+      top = btnRect.top + btnRect.height / 2 - kh / 2;
+      top = Math.max(8, Math.min(top, vh - kh - 8));
+
+      keypad.style.left = left + "px";
+      keypad.style.top = top + "px";
+
+      // 重新计算箭头垂直位置（基于最终 top）
+      var arrowFinalY = btnRect.top + btnRect.height / 2 - top;
+      arrowFinalY = Math.max(16, Math.min(arrowFinalY, kh - 16));
+      arrow.style.top = arrowFinalY + "px";
+      return;
+    }
+
+    // ===== 下方 / 上方弹出模式 =====
+    // 水平：键盘水平居中于"?"下方
+    var leftFit = btnRect.left + btnRect.width / 2 - kw / 2;
+    leftFit = Math.max(8, Math.min(leftFit, vw - kw - 8));
+
+    // 垂直：优先在"?"下方
+    var topFit = btnRect.bottom + gap;
+    var showBelow = true;
+
+    if (topFit + kh > vh - 8) {
+      var topAbove = btnRect.top - gap - kh;
+      if (topAbove >= 8) {
+        topFit = topAbove;
+        showBelow = false;
+      }
+    }
+
+    keypad.style.left = leftFit + "px";
+    keypad.style.top = topFit + "px";
+
+    // 定位箭头：水平指向"?"中心
+    var arrowX = btnRect.left + btnRect.width / 2 - leftFit;
+    arrowX = Math.max(16, Math.min(arrowX, kw - 16));
+
+    if (showBelow) {
+      arrow.style.top = (-12) + "px";
+      arrow.style.bottom = "";
+      arrow.style.left = arrowX + "px";
+      arrow.style.right = "";
+      arrow.style.transform = "translateX(-50%)";
+    } else {
+      keypad.classList.add("arrow-below");
+      arrow.style.bottom = (-12) + "px";
+      arrow.style.top = "";
+      arrow.style.left = arrowX + "px";
+      arrow.style.right = "";
+      arrow.style.transform = "translateX(-50%)";
+    }
+  }
+
+  function openPicker() {
+    if (locked || current === null) return;
+
+    var keypad = document.getElementById("floatingKeypad");
+    var grid = document.getElementById("keypadGrid");
+    var titleEl = document.getElementById("keypadTitle");
+
+    // 更新标题
+    if (current.maskPos === "a" || current.maskPos === "b") {
+      titleEl.textContent = "请选择乘数（1 ~ 9）";
+    } else {
+      titleEl.textContent = "请选择数字（0 ~ 9）";
+    }
+
+    // 构建数字按钮
+    buildPickerInto(grid);
+
+    var occlude = document.getElementById("occludeCheck").checked;
+
+    if (occlude) {
+      keypad.classList.add("occlude");
+    } else {
+      keypad.classList.remove("occlude");
+    }
+
+    // 显示键盘（需要先 display:block 才能获取尺寸）
+    keypad.classList.add("show");
+
+    // 强制回流
+    void keypad.offsetHeight;
+
+    // 定位
+    positionKeypad(occlude);
+  }
+
+  function closePicker() {
+    var keypad = document.getElementById("floatingKeypad");
+    keypad.classList.remove("show");
+    keypad.classList.remove("occlude");
+    keypad.classList.remove("arrow-below");
+    keypad.classList.remove("keypad-side");
+    keypad.classList.remove("arrow-left");
+    keypad.classList.remove("arrow-right");
+    // 清除内联定位样式
+    keypad.style.left = "";
+    keypad.style.top = "";
+    keypad.style.width = "";
+    keypad.style.height = "";
+    keypad.style.maxWidth = "";
+    // 清除箭头内联样式
+    var arrow = document.getElementById("keypadArrow");
+    arrow.style.left = "";
+    arrow.style.top = "";
+    arrow.style.right = "";
+    arrow.style.bottom = "";
+    arrow.style.transform = "";
+  }
+
+  /* =========================================================================
+   * 统计弹层
+   * =======================================================================*/
+  function openModal() {
+    var total = stats.correctTotal + stats.wrongTotal;
+    var accuracy = total === 0 ? 0 : Math.round((stats.correctTotal / total) * 100);
+    var summary;
+    if (total === 0) summary = "还没有作答，加油！";
+    else if (accuracy >= 80) summary = "表现优秀，继续保持！";
+    else if (accuracy >= 50) summary = "还不错，多加练习！";
+    else summary = "多练习乘法口诀会更好哦！";
+
+    var rows = [
+      ["题号", "第 " + questionCount + " 题"],
+      ["总用时", (function(){var m=Math.floor(sessionSeconds/60),s=sessionSeconds%60;return (m<10?"0":"")+m+":"+(s<10?"0":"")+s;})()],
+      ["总计答题", total],
+      ["总计正确", stats.correctTotal],
+      ["总计错误", stats.wrongTotal],
+      ["最大连续正确", stats.maxCorrect],
+      ["最大连续错误", stats.maxWrong],
+      ["正确率", accuracy + "%"],
+    ];
+    var html = "";
+    rows.forEach(function (r) {
+      html += '<div class="modal-row"><span>' + r[0] + "</span><b>" + r[1] + "</b></div>";
+    });
+    html += '<p class="modal-summary">' + summary + "</p>";
+    document.getElementById("modalBody").innerHTML = html;
+    document.getElementById("modal").classList.add("show");
+  }
+
+  function closeModal() {
+    document.getElementById("modal").classList.remove("show");
+  }
+
+  /* =========================================================================
+   * 初始化与事件绑定
+   * =======================================================================*/
+  function init() {
+    refillBag();
+    renderStats();
+    startSessionTimer();
+
+    document.getElementById("situationBtn").addEventListener("click", openModal);
+    document.getElementById("modalClose").addEventListener("click", closeModal);
+    document.getElementById("keypadCancel").addEventListener("click", closePicker);
+
+    // 点击统计弹层空白处关闭
+    document.getElementById("modal").addEventListener("click", function (e) {
+      if (e.target === this) closeModal();
+    });
+
+    // ESC 关闭所有浮层
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        closePicker();
+        closeModal();
+      }
+    });
+
+    // 窗口大小变化时，如果键盘可见则重新定位
+    window.addEventListener("resize", function () {
+      var keypad = document.getElementById("floatingKeypad");
+      if (keypad.classList.contains("show")) {
+        var occlude = keypad.classList.contains("occlude");
+        positionKeypad(occlude);
+      }
+    });
+
+    generateQuestion();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
