@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0">
+<title>乘法口诀表 互动练习</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="streak-toast" class="hidden"></div>
+<div id="app">
+  <!-- 左侧：口诀表区域（顶天立地） -->
+  <div id="left-column">
+    <section id="table-section">
+      <div id="table-container"></div>
+    </section>
+  </div>
+
+  <button id="sidebar-toggle" onclick="toggleSidebar()" title="折叠/展开侧边栏">
+    <span id="sidebar-toggle-icon">&#9654;</span>
+  </button>
+
+  <!-- 右侧：控制面板 -->
+  <div id="right-column">
+    <header id="header">
+      <h1>乘法口诀表 · 互动练习</h1>
+    </header>
+    <nav id="mode-bar">
+      <button class="mode-btn" data-mode="test" onclick="switchMode('test')">测试</button>
+      <button class="mode-btn active" data-mode="practice" onclick="switchMode('practice')">练习</button>
+    </nav>
+    <nav id="type-bar">
+      <button class="type-btn" data-type="T1" onclick="switchQuestionType('T1')">T1 口诀查找</button>
+      <button class="type-btn active" data-type="T2" onclick="switchQuestionType('T2')">T2 个位查找</button>
+      <button class="type-btn" data-type="T3" onclick="switchQuestionType('T3')">T3 十位查找</button>
+      <button class="type-btn" data-type="T4" onclick="switchQuestionType('T4')">T4 个位序列</button>
+      <button class="type-btn" data-type="T5" onclick="switchQuestionType('T5')">T5 十位序列</button>
+    </nav>
+    
+    <section id="difficulty-section">
+      <span class="diff-label">难度：</span>
+      <button class="diff-btn" data-diff="easy" onclick="setDifficulty('easy')">简单 1-5</button>
+      <button class="diff-btn" data-diff="medium" onclick="setDifficulty('medium')">中等 1-7</button>
+      <button class="diff-btn active" data-diff="hard" onclick="setDifficulty('hard')">困难 1-9</button>
+    </section>
+    <div id="practice-selector" class="hidden">
+      <span class="selector-label">选择数值：</span>
+      <div id="value-buttons"></div>
+    </div>
+    <section id="pad-section" class="hidden">
+      <div id="number-pad">
+        <div class="pad-label">请点击下一个数字</div>
+        <div id="pad-sequence" class="pad-sequence"></div>
+        <div class="pad-grid">
+          <button class="pad-btn" data-digit="0">0</button>
+          <button class="pad-btn" data-digit="1">1</button>
+          <button class="pad-btn" data-digit="2">2</button>
+          <button class="pad-btn" data-digit="3">3</button>
+          <button class="pad-btn" data-digit="4">4</button>
+          <button class="pad-btn" data-digit="5">5</button>
+          <button class="pad-btn" data-digit="6">6</button>
+          <button class="pad-btn" data-digit="7">7</button>
+          <button class="pad-btn" data-digit="8">8</button>
+          <button class="pad-btn" data-digit="9">9</button>
+        </div>
+        <div class="pad-nav">
+          <button class="pad-nav-btn" id="btn-pad-prev">上一位</button>
+          <span class="pad-progress">第 <span id="pad-pos">1</span>/<span id="pad-total">9</span> 位</span>
+          <button class="pad-nav-btn" id="btn-pad-next">➡ 下一位</button>
+        </div>
+      </div>
+    </section>
+    <section id="question-area">
+      <div id="question-description">选择题型，开始练习</div>
+      <div id="timer-display">&#9201; 00:00</div>
+      <div id="progress-info">
+        <span id="progress-text">第 0/0 题</span>
+      </div>
+    </section>
+    <section id="action-area">
+      <div id="hint-text">选择一种题型开始练习</div>
+      <div id="action-buttons">
+        <button id="btn-hint" class="action-btn" onclick="useHint()">💡 提示</button>
+        <button id="btn-answer" class="action-btn" onclick="showAnswer()">👁 查看答案</button>
+        <button id="btn-submit" class="action-btn primary hidden" onclick="submitTest()">提交</button>
+        <button id="btn-next" class="action-btn primary" onclick="nextQuestion()">➡ 换一题</button>
+        <span id="test-config" class="test-config hidden">
+          <label for="question-count">题数: </label>
+          <select id="question-count">
+            <option value="1" selected>1题</option>
+            <option value="3">3题</option>
+            <option value="5">5题</option>
+          </select>
+        </span>
+        <button id="btn-start" class="action-btn primary hidden" onclick="startTest()">开始测试</button>
+      </div>
+    </section>
+    <section id="toggle-section">
+      <label class="toggle-label">
+        <input type="checkbox" id="chk-lower-triangle" checked onchange="toggleLowerTriangle(this.checked)">
+        <span class="toggle-slider"></span>
+        <span class="toggle-text">仅限口诀表范围</span>
+        <span class="toggle-help" title="口诀表范围 = 行号 ≥ 列号的下三角区域，即传统乘法口诀表1至9行">?</span>
+      </label>
+        </section>
+    <section id="dark-mode-section" style="text-align:center;padding:4px 12px;">
+      <button id="btn-dark-mode" class="action-btn" onclick="toggleDarkMode()">🌙 自动</button>
+    </section>
+    <section id="stats-panel">
+      <div class="stats-row">
+        <span class="stat-item">题数： <strong id="stat-total">0</strong></span>
+        <span class="stat-item">正确: <strong id="stat-correct" class="text-green">0</strong></span>
+        <span class="stat-item">错误: <strong id="stat-wrong" class="text-red">0</strong></span>
+        <span class="stat-item" id="stat-item-missed">漏选: <strong id="stat-missed" class="text-orange">0</strong></span>
+        <span class="stat-item">正确率: <strong id="stat-rate">0%</strong></span>
+        <span class="stat-item">连击: <strong id="stat-streak" class="text-fire">0</strong></span>
+        <span class="stat-item">最佳: <strong id="stat-best-streak" class="text-fire">0</strong></span>
+      </div>
+    </section>
+  </div>
+
+  <!-- 弹窗 -->
+  <div id="confirm-overlay" class="hidden">
+    <div id="confirm-card">
+      <div id="confirm-icon">?</div>
+      <div id="confirm-title">确认提交</div>
+      <div id="confirm-body">确定后将无法修改，请确认。</div>
+      <div class="confirm-buttons">
+        <button class="action-btn" onclick="closeConfirm()">取消</button>
+        <button class="action-btn primary" onclick="doSubmitTest()">确定</button>
+      </div>
+    </div>
+  </div>
+  <div id="result-overlay" class="hidden">
+    <div id="result-card">
+      <div id="result-icon"></div>
+      <div id="result-title"></div>
+      <div id="result-body"></div>
+      <button id="btn-result-continue" class="action-btn primary" onclick="closeResult()">继续</button>
+    </div>
+  </div>
+</div>
+  <div id="review-overlay" class="hidden">
+    <div id="review-card">
+      <div id="review-title">测试回顾</div>
+      <div id="review-type"></div>
+      <div id="review-desc"></div>
+      <div id="review-stats"></div>
+      <div class="review-nav">
+        <button class="action-btn" id="btn-review-prev" onclick="reviewPrev()">上一题</button>
+        <span id="review-progress">1/1</span>
+        <button class="action-btn" id="btn-review-next" onclick="reviewNext()">下一题</button>
+      </div>
+      <button class="action-btn primary" onclick="closeTestReview()">关闭</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>
