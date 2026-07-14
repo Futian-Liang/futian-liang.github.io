@@ -217,6 +217,67 @@
   }
   .card-meta span { display: inline-flex; align-items: center; gap: 4px; }
 
+  /* Live projects */
+  .live-section { margin-top: 56px; }
+  .live-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 20px;
+  }
+  .live-card {
+    background: linear-gradient(135deg, #161b22 0%, #1a1f2e 100%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .live-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--purple));
+  }
+  .live-card:hover {
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(88,166,255,.1);
+  }
+  .live-card h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .live-card h3 a { color: var(--text); }
+  .live-card h3 a:hover { color: var(--accent); }
+  .live-card .live-url {
+    font-size: .8rem;
+    color: var(--accent);
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+  .live-card .live-desc {
+    color: var(--text-muted);
+    font-size: .88rem;
+    line-height: 1.6;
+  }
+  .live-card .live-tag {
+    display: inline-block;
+    font-size: .7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(63,185,80,.15);
+    color: var(--green);
+    border: 1px solid rgba(63,185,80,.3);
+    margin-bottom: 10px;
+  }
+
   /* Footer */
   footer {
     text-align: center;
@@ -250,6 +311,7 @@
 
 <div class="stats">
   <div class="stat-item"><div class="num" id="stat-total">0</div><div class="label">公开仓库</div></div>
+  <div class="stat-item"><div class="num" id="stat-pri">26</div><div class="label">私有仓库</div></div>
   <div class="stat-item"><div class="num" id="stat-web">0</div><div class="label">Web 应用</div></div>
   <div class="stat-item"><div class="num" id="stat-edu">0</div><div class="label">教材 / 教学</div></div>
   <div class="stat-item"><div class="num" id="stat-skill">0</div><div class="label">AI 技能</div></div>
@@ -270,6 +332,39 @@
   </div>
 
   <div class="grid" id="project-grid"></div>
+
+  <div class="live-section">
+    <div class="section-title">
+      线上应用 <span class="count">4</span>
+    </div>
+    <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:24px;">以下项目源自私有仓库，已部署上线运行：</p>
+    <div class="live-grid">
+      <div class="live-card">
+        <span class="live-tag">私有仓库 · 线上运行</span>
+        <h3>墨隐 MoYin</h3>
+        <a class="live-url" href="https://moyin.write2.me" target="_blank">moyin.write2.me →</a>
+        <div class="live-desc">匿名创作 · 读者共决 · 开放协作的小说创作与阅读平台。基于 Nuxt 3 SSR + FastAPI + PostgreSQL + Redis 构建，支持 Markdown 渲染、TTS 语音朗读、投票共决剧情走向。</div>
+      </div>
+      <div class="live-card">
+        <span class="live-tag">私有仓库 · 线上运行</span>
+        <h3>Quantum.Kim</h3>
+        <a class="live-url" href="https://quantum.kim" target="_blank">quantum.kim →</a>
+        <div class="live-desc">QCaaS 量子计算云服务平台。前后端分离架构，提供量子电路在线编辑、模拟执行与结果可视化，Docker 容器化部署。</div>
+      </div>
+      <div class="live-card">
+        <span class="live-tag">私有仓库 · 线上运行</span>
+        <h3>梁姓寻根溯源</h3>
+        <a class="live-url" href="https://liang.icu" target="_blank">liang.icu →</a>
+        <div class="live-desc">梁姓历史文化溯源网站，React + Vite + Tailwind 水墨风静态站，探索梁姓的起源、迁徙、名人典故与文化传承。</div>
+      </div>
+      <div class="live-card">
+        <span class="live-tag">私有仓库 · 线上运行</span>
+        <h3>课题组文献共享平台</h3>
+        <a class="live-url" href="https://zotero.quanta.host" target="_blank">zotero.quanta.host →</a>
+        <div class="live-desc">多用户 Zotero 文献共享平台，支持上传合并、WebDAV 同步、文献整理与学习。React + FastAPI + PostgreSQL + Redis 全栈架构。</div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <footer>
@@ -412,6 +507,7 @@ function renderStats() {
   document.getElementById('stat-web').textContent = projects.filter(p => p.cat === 'web').length;
   document.getElementById('stat-edu').textContent = projects.filter(p => p.cat === 'edu').length;
   document.getElementById('stat-skill').textContent = projects.filter(p => p.cat === 'skill').length;
+  // stat-pri is hardcoded as 26 in HTML
 }
 
 document.querySelectorAll('.filter-btn').forEach(btn => {
