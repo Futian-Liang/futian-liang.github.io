@@ -189,6 +189,7 @@
     white-space: nowrap;
   }
   .badge-public { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+  .badge-private { background: rgba(210,153,34,.12); color: var(--orange); border: 1px solid rgba(210,153,34,.3); }
   .badge-cat { background: rgba(188,140,255,.12); color: var(--purple); border: 1px solid rgba(188,140,255,.25); }
 
   .card-desc {
@@ -312,7 +313,7 @@
 
 <div class="stats">
   <div class="stat-item"><div class="num" id="stat-total">0</div><div class="label">公开仓库</div></div>
-  <div class="stat-item"><div class="num" id="stat-pri">30</div><div class="label">私有仓库</div></div>
+  <div class="stat-item"><div class="num" id="stat-pri">0</div><div class="label">私有仓库</div></div>
   <div class="stat-item"><div class="num" id="stat-web">0</div><div class="label">Web 应用</div></div>
   <div class="stat-item"><div class="num" id="stat-edu">0</div><div class="label">教材 / 教学</div></div>
   <div class="stat-item"><div class="num" id="stat-skill">0</div><div class="label">AI 技能</div></div>
@@ -336,7 +337,7 @@
 
   <div class="live-section">
     <div class="section-title">
-      线上应用 <span class="count">14</span>
+      线上应用 <span class="count">15</span>
     </div>
     <p style="color:var(--text-muted);font-size:.85rem;margin-bottom:24px;">以下项目已部署上线，涵盖私有仓库与公开仓库：</p>
     <div class="live-grid">
@@ -357,6 +358,12 @@
         <h3>见字如面 · 时光邮件</h3>
         <a class="live-url" href="https://write2.me" target="_blank">write2.me →</a>
         <div class="live-desc">时光邮件延时发送服务 — 写给未来的自己或他人，在指定时间收到邮件。让此刻的心意穿越时间抵达。</div>
+      </div>
+      <div class="live-card">
+        <span class="live-tag">公开仓库 · 线上运行</span>
+        <h3>青禾 · 班主任 AI</h3>
+        <a class="live-url" href="https://qh.write2.me" target="_blank">qh.write2.me →</a>
+        <div class="live-desc">青禾班主任 AI 智能体系统 — 8 位专职智能体守护每一个学生成长节点。QQ 官方机器人 + 桌面/Web 客户端双端，Tauri 2 + Vue 3 构建。</div>
       </div>
       <div class="live-card">
         <span class="live-tag">私有仓库 · 线上运行</span>
@@ -431,7 +438,7 @@
 
 <footer>
   <p>© 2026 梁大夫 Dr.Liang · Powered by <a href="https://gitee.com/ftliang" target="_blank">Gitee</a> · AGPL-3.0</p>
-  <p style="margin-top:8px;">本页面由 <code>ftliang.gitee.io</code> 提供 · 数据同步于 2026-07-14</p>
+  <p style="margin-top:8px;">本页面由 <code>ftliang.gitee.io</code> 提供 · 数据同步于 2026-10-10</p>
 </footer>
 
 <script>
@@ -440,23 +447,103 @@ const projects = [
     name: "MDEditor",
     desc: "轻量级跨平台 Markdown 编辑器，基于 Tauri 2 + Vue 3 + CodeMirror 6 构建。支持实时预览、差异对比、多视图模式。",
     url: "https://gitee.com/ftliang/MDEditor",
-    cat: "web", catLabel: "Web 应用",
-    updated: "2026-07-09",
+    cat: "web", catLabel: "Web 应用", visibility: "public",
+    updated: "2026-09-22",
     tech: "Tauri 2 / Vue 3 / CodeMirror 6"
+  },
+  {
+    name: "class-advisor-ai",
+    desc: "青禾 · 班主任 AI 智能体系统服务端。8 位专职智能体（迎新、课业、心理、考勤等）守护学生成长节点，通过 QQ 官方机器人交互。",
+    url: "https://gitee.com/ftliang/class-advisor-ai",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "public",
+    updated: "2026-10-09",
+    tech: "Dify / LangBot / QQ Bot"
+  },
+  {
+    name: "class-advisor-pc",
+    desc: "青禾班主任 AI 助手 PC/Web 端。Tauri 2 + Vue 3 同一套代码双构建，桌面安装包 + Web 版浏览器访问，托盘常驻、全局快捷键。",
+    url: "https://gitee.com/ftliang/class-advisor-pc",
+    cat: "web", catLabel: "Web 应用", visibility: "public",
+    updated: "2026-10-09",
+    tech: "Tauri 2 / Vue 3 / Tailwind 4"
+  },
+  {
+    name: "M5StopWatch",
+    desc: "M5Stack StopWatch (C152) 圆屏手表中文化定制固件。18 个实用 App（番茄钟、课堂计时、秒表等），全部真机烧录验证，可改可重刷。",
+    url: "https://gitee.com/ftliang/M5StopWatch",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "public",
+    updated: "2026-10-01",
+    tech: "M5Stack / C++ / ESP32"
   },
   {
     name: "moyin-android",
     desc: "墨隐 — 沉浸式小说阅读 Android 客户端。支持 TTS 语音朗读、Sherpa ONNX 离线语音、Edge 在线语音、Markdown 渲染、书架管理。",
     url: "https://gitee.com/ftliang/moyin-android",
-    cat: "web", catLabel: "Web 应用",
-    updated: "2026-06-30",
+    cat: "web", catLabel: "Web 应用", visibility: "public",
+    updated: "2026-08-28",
     tech: "Kotlin / Compose / Hilt / Room"
+  },
+  {
+    name: "Appointment",
+    desc: "单页周历匿名预约系统。用户在周历上点绿色格子填预约（姓名 + 备注 + PIN），凭姓名+PIN 修改或取消；管理员后台按日期开放时段、管理名单。",
+    url: "https://gitee.com/ftliang/appointment",
+    cat: "web", catLabel: "Web 应用", visibility: "private",
+    updated: "2026-10-10",
+    tech: "Next.js 16 / SQLite / Docker"
+  },
+  {
+    name: "note4c",
+    desc: "NOTE4C 桌面看板 — 4.2 英寸四色墨水屏（400×300）信息展板。服务端聚合成一份 JSON，设备拉取自排版渲染：日期 / 农历黄历 / 天气 / 日程 / 位置。",
+    url: "",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "private",
+    updated: "2026-10-08",
+    tech: "墨水屏 / ESP32 / Python"
+  },
+  {
+    name: "StickS3",
+    desc: "StickS3 多合一固件 — M5Stack StickS3 (ESP32-S3) 随身工具箱。七个 App 编进同一个 bin，内部启动器切换，无 OTA。",
+    url: "https://gitee.com/ftliang/StickS3",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "private",
+    updated: "2026-10-07",
+    tech: "M5Stack / C++ / ESP32"
+  },
+  {
+    name: "RoundWatch-175C",
+    desc: "把 M5StopWatch 定制 App 移植到 Waveshare ESP32-S3-Touch-AMOLED-1.75C 圆表，以小智语音助手为底座。",
+    url: "https://gitee.com/ftliang/RoundWatch-175C",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "private",
+    updated: "2026-09-23",
+    tech: "ESP32-S3 / C++ / 圆表"
+  },
+  {
+    name: "Waveshare-175C",
+    desc: "把 M5StopWatch 中文表固件移植到 Waveshare ESP32-S3-Touch-AMOLED-1.75C（466×466 圆形 AMOLED）上，圆孔 AMOLED 小工具集。",
+    url: "https://gitee.com/ftliang/Waveshare-175C",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "private",
+    updated: "2026-09-26",
+    tech: "ESP32-S3 / C++ / AMOLED"
+  },
+  {
+    name: "word-invaders",
+    desc: "🐝 单词小蜜蜂 · 太空背单词 — 打小蜜蜂式太空射击背单词游戏。敌机带单词飞入，敲出想攻击的单词即可击落飞船。",
+    url: "https://gitee.com/ftliang/word-invaders",
+    cat: "web", catLabel: "Web 应用", visibility: "private",
+    updated: "2026-09-09",
+    tech: "HTML / JavaScript"
+  },
+  {
+    name: "XiGuang-OS",
+    desc: "曦光 OS — 为下一个三十年造的操作系统。不死机系统底座、应用只拿你给的钥匙、关机不用点保存、一份应用跑遍国产芯。",
+    url: "https://gitee.com/ftliang/xiguang-os",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "private",
+    updated: "2026-08-21",
+    tech: "Rust / 操作系统"
   },
   {
     name: "9X9",
     desc: "乘法口诀表互动练习程序 — 九乘九。适合小学生互动练习乘法表。",
     url: "https://gitee.com/ftliang/9X9",
-    cat: "edu", catLabel: "教材 / 教学",
+    cat: "edu", catLabel: "教材 / 教学", visibility: "public",
     updated: "2026-06-15",
     tech: "HTML / JavaScript"
   },
@@ -464,15 +551,15 @@ const projects = [
     name: "9x9-multiply-practice",
     desc: "乘法口诀表互动练习 Web 版，增强版练习体验。",
     url: "https://gitee.com/ftliang/9x9-multiply-practice",
-    cat: "edu", catLabel: "教材 / 教学",
-    updated: "2026-07-14",
+    cat: "edu", catLabel: "教材 / 教学", visibility: "public",
+    updated: "2026-07-31",
     tech: "HTML / JavaScript"
   },
   {
     name: "analog-electronics-textbook",
     desc: "《电子技术基础》课程扩展版教材，覆盖从电路基本定律到模拟集成电路设计的完整知识体系。全书 16 章正文 + 12 个附录，约 13,000 行正文，配套 110+ 幅 SVG 示意图。",
     url: "https://gitee.com/ftliang/analog-electronics-textbook",
-    cat: "edu", catLabel: "教材 / 教学",
+    cat: "edu", catLabel: "教材 / 教学", visibility: "public",
     updated: "2026-06-19",
     tech: "Markdown / SVG"
   },
@@ -480,23 +567,47 @@ const projects = [
     name: "electronic-instruments-textbook",
     desc: "电子学测试测量仪器使用说明书 / 教材，涵盖示波器、信号源、万用表等常用仪器的原理与操作指南。",
     url: "https://gitee.com/ftliang/electronic-instruments-textbook",
-    cat: "edu", catLabel: "教材 / 教学",
+    cat: "edu", catLabel: "教材 / 教学", visibility: "public",
     updated: "2026-07-10",
     tech: "Markdown"
+  },
+  {
+    name: "quantum-computing-textbook",
+    desc: "《量子计算前沿》教材 — 从物理实现到容错计算。基于中科大 PHYS4010.01 课程，AGPL-3.0 许可，线上发布于 book.quantum.kim。",
+    url: "https://gitee.com/ftliang/quantum-computing-textbook",
+    cat: "edu", catLabel: "教材 / 教学", visibility: "public",
+    updated: "2026-05-31",
+    tech: "Markdown / MkDocs"
   },
   {
     name: "bloch-sphere",
     desc: "Bloch 球 3D 可视化组件 — 用于量子态的可交互展示。自包含的 React/Three.js 组件，可直接嵌入教学页面。",
     url: "https://gitee.com/ftliang/bloch-sphere",
-    cat: "edu", catLabel: "教材 / 教学",
+    cat: "edu", catLabel: "教材 / 教学", visibility: "public",
     updated: "2026-05-11",
     tech: "React / Three.js"
+  },
+  {
+    name: "melodytrace-desktop",
+    desc: "听音出谱 — 桌面 AMT 程序。实时多乐器听音出谱 + 频谱可视化，将旋律自动转换为乐谱。",
+    url: "https://gitee.com/ftliang/melodytrace-desktop",
+    cat: "tool", catLabel: "工具 / 其他", visibility: "private",
+    updated: "2026-05-20",
+    tech: "桌面应用 / 音频处理"
+  },
+  {
+    name: "TimeLine",
+    desc: "起居注时间线管理应用 — 记录生活中的重要时刻，智能标签整理与统计分析，Go 后端 + Web 端 + Android 端三端。",
+    url: "https://git.ustc.edu.cn/Liang/timeline_web",
+    cat: "web", catLabel: "Web 应用", visibility: "private",
+    updated: "2025-09-29",
+    tech: "Go / Web / Android"
   },
   {
     name: "novel-writer",
     desc: "WPS 灵犀 AgentSkill — 中文小说自动写作。支持分级大纲生成、逐章写作、跨会话续写、审计回溯全流程。",
     url: "https://gitee.com/ftliang/novel-writer",
-    cat: "skill", catLabel: "AI 技能",
+    cat: "skill", catLabel: "AI 技能", visibility: "public",
     updated: "2026-05-26",
     tech: "AgentSkill / Markdown"
   },
@@ -504,7 +615,7 @@ const projects = [
     name: "moyin-novel-submitter",
     desc: "墨隐 MoYin 小说发布技能 — AI Agent 批量发布小说 / 章节到墨隐平台。支持创建、发布、编辑、状态管理。",
     url: "https://gitee.com/ftliang/moyin-novel-submitter",
-    cat: "skill", catLabel: "AI 技能",
+    cat: "skill", catLabel: "AI 技能", visibility: "public",
     updated: "2026-05-23",
     tech: "AgentSkill / API"
   },
@@ -512,7 +623,7 @@ const projects = [
     name: "thesis-review",
     desc: "硕士论文评审技能。由论文评审导师将审稿经验提炼而成，帮助学生提交前完成结构化自我检查，覆盖选题背景、创新点、技术严谨性等维度。",
     url: "https://gitee.com/ftliang/thesis-review",
-    cat: "skill", catLabel: "AI 技能",
+    cat: "skill", catLabel: "AI 技能", visibility: "public",
     updated: "2026-05-07",
     tech: "AgentSkill"
   },
@@ -526,13 +637,16 @@ function renderProjects(filter) {
   filtered.forEach(p => {
     const card = document.createElement('div');
     card.className = 'card';
-    const badges = `
-      <span class="badge badge-public">公开</span>
-      <span class="badge badge-cat">${p.catLabel}</span>
-    `;
+    const visBadge = p.visibility === 'private'
+      ? '<span class="badge badge-private">私有</span>'
+      : '<span class="badge badge-public">公开</span>';
+    const badges = `${visBadge}<span class="badge badge-cat">${p.catLabel}</span>`;
+    const nameHtml = p.url
+      ? `<a href="${p.url}" target="_blank">${p.name}</a>`
+      : `<span>${p.name}</span>`;
     card.innerHTML = `
       <div class="card-header">
-        <h3><a href="${p.url}" target="_blank">${p.name}</a></h3>
+        <h3>${nameHtml}</h3>
         <div class="badges">${badges}</div>
       </div>
       <div class="card-desc">${p.desc}</div>
@@ -550,10 +664,10 @@ function renderProjects(filter) {
 
 function renderStats() {
   document.getElementById('stat-total').textContent = projects.length;
+  document.getElementById('stat-pri').textContent = projects.filter(p => p.visibility === 'private').length;
   document.getElementById('stat-web').textContent = projects.filter(p => p.cat === 'web').length;
   document.getElementById('stat-edu').textContent = projects.filter(p => p.cat === 'edu').length;
   document.getElementById('stat-skill').textContent = projects.filter(p => p.cat === 'skill').length;
-  // stat-pri is hardcoded as 30 in HTML
 }
 
 document.querySelectorAll('.filter-btn').forEach(btn => {
